@@ -31,8 +31,8 @@ module Data.Vector.Lens
 import Control.Applicative
 import Control.Lens
 import Data.Vector as Vector hiding (zip, filter, indexed)
+import qualified Data.IntSet as IS
 import Prelude hiding ((++), length, null, head, tail, init, last, map, reverse)
-import Data.List (nub)
 import Data.Monoid
 
 -- | @sliced i n@ provides a 'Lens' that edits the @n@ elements starting
@@ -89,7 +89,13 @@ forced = iso force force
 -- >>> toListOf (ordinals [1,3,2,5,9,10]) $ Vector.fromList [2,4..40]
 -- [4,8,6,12,20,22]
 ordinals :: [Int] -> IndexedTraversal' Int (Vector a) a
-ordinals is f v = fmap (v //) $ traverse (\i -> (,) i <$> indexed f i (v ! i)) $ nub $ filter (\i -> 0 <= i && i < l) is where
+ordinals is f v = fmap (v //) $ traverse (\i -> (,) i <$> indexed f i (v ! i)) $ nubInt $ filter (\i -> 0 <= i && i < l) is where
   l = length v
 {-# INLINE ordinals #-}
 
+nubInt :: [Int] -> [Int]
+nubInt xs = foldr go (`seq` []) xs IS.empty
+  where
+    go x cont seen
+      | x `IS.member` seen = cont seen
+      | otherwise = x : (cont $! IS.insert x seen)
