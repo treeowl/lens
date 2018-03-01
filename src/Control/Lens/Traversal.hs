@@ -726,17 +726,18 @@ unconsWithDefault _ (x:xs) = (x,xs)
 -- 'holesOf' :: 'IndexedLens'' i s a      -> s -> ['Pretext'' ('Indexed' i) a s]
 -- 'holesOf' :: 'IndexedTraversal'' i s a -> s -> ['Pretext'' ('Indexed' i) a s]
 -- @
-holesOf :: Conjoined p
-        => Over p (Bazaar p a a) s t a a -> s -> [Pretext p a a t]
+holesOf :: (Corepresentable p, Comonad (Corep p))
+         => Over p (Holes t (Endo [Pretext p a a t])) s t a a
+         -> s -> [Pretext p a a t]
 holesOf f xs = flip appEndo [] . fst $
-  runHoles (runBazaar (f sell xs) (cotabulate holeInOne)) id
+  runHoles (f (cotabulate holeInOne) xs) id
 {-# INLINE holesOf #-}
 
-holeInOne :: forall p a t. (Corepresentable p, Category p)
+holeInOne :: forall p a t. (Corepresentable p, Comonad (Corep p))
           => Corep p a -> Holes t (Endo [Pretext p a a t]) a
 holeInOne x = Holes $ \xt ->
     ( Endo (fmap xt (cosieve sell x) :)
-    , cosieve (id :: p a a) x)
+    , extract x)
 {-# INLINABLE holeInOne #-}
 
 -- We are very careful to share as much structure as possible among
